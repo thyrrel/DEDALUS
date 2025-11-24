@@ -1,43 +1,52 @@
-// src/api/controllers/WorkflowController.ts
+// src/api/controllers/WorkflowController.ts (Atualizado)
+
 import { Request, Response } from 'express';
-// Note: O WorkflowService ainda não existe, mas definimos a intenção de uso.
-// import { WorkflowService } from '../../services/WorkflowService'; 
+import { WorkflowService } from '../../services/WorkflowService'; // Importação do Serviço
 
 export class WorkflowController {
-    // private workflowService: WorkflowService;
+    private workflowService: WorkflowService;
 
     constructor() {
-        // this.workflowService = new WorkflowService();
-        this.createWorkflow = this.createWorkflow.bind(this); // Garante o escopo 'this'
+        // Inicialização do serviço de negócios (Injeção de dependência simples)
+        this.workflowService = new WorkflowService();
+        this.createWorkflow = this.createWorkflow.bind(this); 
         this.getWorkflow = this.getWorkflow.bind(this);
     }
 
     /**
-     * Lida com a criação de um novo Workflow a partir do Designer Low-Code.
+     * Cria um novo Workflow, delegando a validação e persistência para o Service.
      */
     public createWorkflow(req: Request, res: Response): Response {
         try {
-            const workflowData = req.body; // O fluxo Low-Code em formato JSON/YAML
+            const workflowData = req.body;
             
-            // TODO: Chamar o WorkflowService para validar e persistir o fluxo
-            // const result = this.workflowService.save(workflowData); 
-
-            console.log('Recebido novo Workflow para criação:', workflowData.name); 
+            // Chama o Service para processar os dados
+            const result = this.workflowService.saveWorkflow(workflowData); 
 
             return res.status(201).send({ 
-                id: 'mock-123', 
-                message: 'Workflow recebido e salvo com sucesso (MOCK).',
-                data: workflowData
+                id: result?.id, 
+                message: 'Workflow criado e persistido com sucesso.',
+                version: result?.version
             });
 
-        } catch (error) {
-            console.error('Erro no Controller de criação de Workflow:', error);
-            return res.status(500).send({ message: 'Erro interno ao processar a requisição.' });
+        } catch (error: any) {
+            // Captura erros do Service (ex: falha de validação)
+            console.error('Erro no Controller de criação de Workflow:', error.message);
+            return res.status(400).send({ message: error.message || 'Erro interno ao processar a requisição.' });
         }
     }
     
-    // ... outros métodos como getWorkflow, updateWorkflow, etc. (omitidos por brevidade)
+    /**
+     * Busca um workflow pelo ID.
+     */
     public getWorkflow(req: Request, res: Response): Response {
-        return res.status(200).send({ id: req.params.id, message: "Detalhes do Workflow (MOCK)." });
+        const id = req.params.id;
+        const workflow = this.workflowService.getWorkflowById(id);
+
+        if (!workflow) {
+            return res.status(404).send({ message: `Workflow ID ${id} não encontrado.` });
+        }
+        
+        return res.status(200).send({ data: workflow });
     }
 }
