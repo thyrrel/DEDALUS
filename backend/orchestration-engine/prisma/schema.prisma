@@ -1,4 +1,4 @@
-// /backend/orchestration-engine/prisma/schema.prisma
+// /backend/orchestration-engine/prisma/schema.prisma (FINAL PARA MYSQL)
 
 // Define o conector e o provedor do banco de dados
 generator client {
@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql" // MUDANÇA: Altera o provedor para MySQL
   // A URL de conexão será lida de uma variável de ambiente (DATABASE_URL)
+  // O MySQL usa 'mysql://...'
   url      = env("DATABASE_URL")
 }
 
@@ -15,35 +16,37 @@ datasource db {
 
 // 1. Modelo de Workflow (Definição do fluxo Low-Code)
 model Workflow {
-  id          String   @id @default(uuid()) // UUID universal para identificação
-  name        String
+  id          String   @id @default(uuid()) @db.VarChar(36) // Especifica tamanho e UUID para MySQL
+  name        String   @db.VarChar(255)
   version     Int      @default(1)
-  description String?
-  authorId    String
+  description String?  @db.Text
+  authorId    String   @db.VarChar(100)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  // Armazena a estrutura do fluxo Low-Code em formato JSON nativo (JSONB no Postgres)
+  // Armazena a estrutura do fluxo Low-Code em formato JSON nativo
+  // MySQL suporta o tipo JSON, que é gerenciado pelo Prisma.
   nodesJson   Json     @map("nodes_json") 
 
   // Relacionamento com as execuções
   executions  WorkflowExecution[]
   
   // Índices para otimizar buscas
+  // Unique combinado para garantir que não haja dois workflows com o mesmo nome/versão.
   @@unique([name, version])
   @@map("workflows")
 }
 
 // 2. Modelo de Execução de Workflow (Histórico e Estado)
 model WorkflowExecution {
-  instanceId      String   @id @default(uuid())
-  workflowId      String
-  status          String   // 'RUNNING', 'COMPLETED', 'FAILED', etc.
-  currentNodeId   String   @map("current_node_id")
-  dataContextJson Json     @map("data_context_json") // Contexto de dados (payload) no ponto de falha/conclusão
+  instanceId      String   @id @default(uuid()) @db.VarChar(36)
+  workflowId      String   @db.VarChar(36)
+  status          String   @db.VarChar(50)
+  currentNodeId   String   @map("current_node_id") @db.VarChar(50)
+  dataContextJson Json     @map("data_context_json") // Contexto de dados (payload)
   startTime       DateTime @default(now())
   endTime         DateTime?
-  historyJson     Json     @map("history_json") // Array de nós percorridos
+  historyJson     Json     @map("history_json") // Registro dos nós percorridos
 
   // Relacionamento de volta para o Workflow
   workflow Workflow @relation(fields: [workflowId], references: [id])
