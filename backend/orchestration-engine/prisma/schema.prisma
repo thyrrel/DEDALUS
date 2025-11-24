@@ -1,0 +1,52 @@
+// /backend/orchestration-engine/prisma/schema.prisma
+
+// Define o conector e o provedor do banco de dados
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // A URL de conexão será lida de uma variável de ambiente (DATABASE_URL)
+  url      = env("DATABASE_URL")
+}
+
+// --- MODELOS DE DADOS DEDALUS ---
+
+// 1. Modelo de Workflow (Definição do fluxo Low-Code)
+model Workflow {
+  id          String   @id @default(uuid()) // UUID universal para identificação
+  name        String
+  version     Int      @default(1)
+  description String?
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Armazena a estrutura do fluxo Low-Code em formato JSON nativo (JSONB no Postgres)
+  nodesJson   Json     @map("nodes_json") 
+
+  // Relacionamento com as execuções
+  executions  WorkflowExecution[]
+  
+  // Índices para otimizar buscas
+  @@unique([name, version])
+  @@map("workflows")
+}
+
+// 2. Modelo de Execução de Workflow (Histórico e Estado)
+model WorkflowExecution {
+  instanceId      String   @id @default(uuid())
+  workflowId      String
+  status          String   // 'RUNNING', 'COMPLETED', 'FAILED', etc.
+  currentNodeId   String   @map("current_node_id")
+  dataContextJson Json     @map("data_context_json") // Contexto de dados (payload) no ponto de falha/conclusão
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  historyJson     Json     @map("history_json") // Array de nós percorridos
+
+  // Relacionamento de volta para o Workflow
+  workflow Workflow @relation(fields: [workflowId], references: [id])
+  
+  @@map("workflow_executions")
+}
