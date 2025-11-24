@@ -1,41 +1,30 @@
-import express, { Request, Response } from 'express';
+// src/index.ts (Atualizado)
+import express from 'express';
+import { WorkflowRoutes } from './api/routes/WorkflowRoutes'; // Importa as rotas
 
 // --- Variáveis de Configuração ---
-// Define a porta do servidor. Lendo de uma variável de ambiente (process.env) 
-// é a prática padrão para implantação (Deployment).
 const PORT = process.env.PORT || 3000;
 const app = express();
 
 // --- Middleware ---
-// Configura o servidor para aceitar corpos de requisição no formato JSON.
 app.use(express.json()); 
 
-// --- Rotas Base ---
-/**
- * Rota de Health Check (Verificação de Saúde).
- * Essencial para monitoramento e orquestradores como Kubernetes.
- */
-app.get('/health', (req: Request, res: Response) => {
-    // Retorna o status 200 OK e uma mensagem indicando que o motor está ativo.
-    res.status(200).send({ status: 'OK', service: 'DEDALUS Orchestration Engine' });
-});
+// --- Carregamento das Rotas da Aplicação ---
+// Todas as rotas de workflow serão prefixadas com /api/v1
+app.use('/api/v1', WorkflowRoutes); 
 
 /**
- * Rota Raiz. Pode ser usada para fornecer informações da API.
+ * Rota de Health Check e Raiz (mantidas para simplicidade).
  */
-app.get('/', (req: Request, res: Response) => {
-    res.status(200).send({ message: 'Bem-vindo ao DEDALUS: Dynamic Engine for Deployment.' });
-});
+app.get('/health', (req, res) => res.status(200).send({ status: 'OK', service: 'DEDALUS Engine' }));
+app.get('/', (req, res) => res.status(200).send({ message: 'Bem-vindo ao DEDALUS.' }));
 
-// --- Inicialização do Servidor ---
+// --- Inicialização do Servidor (Bloco Try/Catch mantido) ---
 try {
     app.listen(PORT, () => {
         console.log(`[DEDALUS]: Motor de Orquestração rodando em http://localhost:${PORT}`);
-        console.log(`[STATUS]: Pressione CTRL+C para encerrar.`);
     });
 } catch (error) {
-    // Tratamento de erro na inicialização do servidor.
-    console.error(`[FATAL ERROR]: Falha ao iniciar o servidor:`, error);
+    console.error(`[FATAL ERROR]: Falha ao iniciar o servidor.`);
     process.exit(1);
 }
-
