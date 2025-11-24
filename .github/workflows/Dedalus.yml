@@ -1,23 +1,22 @@
-# .github/workflows/main-deploy.yml (EXECUÇÃO FORÇADA)
+# .github/workflows/main-deploy.yml (EXECUÇÃO PARALELA)
 
-name: ⚙️ DEDALUS - Deploy Centralizado (EXECUÇÃO FORÇADA)
+name: ⚙️ DEDALUS - Deploy Centralizado (PARALELO)
 
 on:
   push:
     branches:
       - main
-  # Mantemos o workflow_dispatch para permitir execuções manuais
   workflow_dispatch: 
 
 jobs:
   # -----------------------------------------------------
-  # 1. Job do Backend: Motor de Orquestração (SEMPRE RODA)
+  # 1. Job do Backend: Motor de Orquestração
+  # Este Job será iniciado Imediatamente.
   # -----------------------------------------------------
   deploy-backend:
     runs-on: ubuntu-latest
     name: Build & Deploy Backend
     environment: Production
-    # A linha 'if:' foi removida, garantindo que este Job SEMPRE execute.
     
     steps:
     - name: ⬇️ Checkout do Código
@@ -51,13 +50,13 @@ jobs:
         args: --skip-passive --delete-local --unzip 'backend/orchestration-engine/backend-deploy.zip' --dest /dedalus-backend/
       
   # -----------------------------------------------------
-  # 2. Job do Frontend: Designer Low-Code (SEMPRE RODA)
+  # 2. Job do Frontend: Designer Low-Code
+  # Este Job será iniciado Imediatamente (paralelo ao Backend).
   # -----------------------------------------------------
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [deploy-backend]
+    # REMOVIDA A LINHA 'needs: [deploy-backend]'
     name: Build & Deploy Frontend
-    # A linha 'if:' foi removida, garantindo que este Job SEMPRE execute.
 
     steps:
     - name: ⬇️ Checkout do Código
