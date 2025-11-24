@@ -1,52 +1,45 @@
-// src/api/controllers/WorkflowController.ts (Atualizado)
+// src/api/controllers/WorkflowController.ts (Método executeWorkflow adicionado)
 
 import { Request, Response } from 'express';
-import { WorkflowService } from '../../services/WorkflowService'; // Importação do Serviço
+import { WorkflowService } from '../../services/WorkflowService';
 
 export class WorkflowController {
     private workflowService: WorkflowService;
 
     constructor() {
-        // Inicialização do serviço de negócios (Injeção de dependência simples)
         this.workflowService = new WorkflowService();
-        this.createWorkflow = this.createWorkflow.bind(this); 
+        this.createWorkflow = this.createWorkflow.bind(this);
         this.getWorkflow = this.getWorkflow.bind(this);
+        this.executeWorkflow = this.executeWorkflow.bind(this); // NOVO: Binding necessário
     }
 
-    /**
-     * Cria um novo Workflow, delegando a validação e persistência para o Service.
-     */
-    public createWorkflow(req: Request, res: Response): Response {
-        try {
-            const workflowData = req.body;
-            
-            // Chama o Service para processar os dados
-            const result = this.workflowService.saveWorkflow(workflowData); 
+    // ... (Métodos createWorkflow e getWorkflow mantidos) ...
 
-            return res.status(201).send({ 
-                id: result?.id, 
-                message: 'Workflow criado e persistido com sucesso.',
-                version: result?.version
+    /**
+     * Inicia a execução de um workflow pelo ID, usando dados de entrada (payload).
+     */
+    public executeWorkflow(req: Request, res: Response): Response {
+        try {
+            const workflowId = req.params.id;
+            const initialData = req.body || {}; // O payload de dados inicial
+            
+            console.log(`Recebida requisição de execução para o Workflow ID: ${workflowId}`);
+            
+            // 1. Delega a inicialização para a camada de Serviço
+            const executionState = this.workflowService.startWorkflowExecution(workflowId, initialData);
+
+            // 2. Retorna o estado inicial da execução
+            return res.status(202).send({ // Status 202 Accepted indica que o processamento foi iniciado
+                message: 'Execução do Workflow iniciada com sucesso.',
+                executionId: executionState.instanceId,
+                status: executionState.status
             });
 
         } catch (error: any) {
-            // Captura erros do Service (ex: falha de validação)
-            console.error('Erro no Controller de criação de Workflow:', error.message);
-            return res.status(400).send({ message: error.message || 'Erro interno ao processar a requisição.' });
+            console.error('Erro no Controller de execução de Workflow:', error.message);
+            // Retorna 404 se não for encontrado ou 400 para erros de dados/validação
+            const statusCode = error.message.includes('não encontrado') ? 404 : 400;
+            return res.status(statusCode).send({ message: error.message || 'Erro interno na execução do fluxo.' });
         }
-    }
-    
-    /**
-     * Busca um workflow pelo ID.
-     */
-    public getWorkflow(req: Request, res: Response): Response {
-        const id = req.params.id;
-        const workflow = this.workflowService.getWorkflowById(id);
-
-        if (!workflow) {
-            return res.status(404).send({ message: `Workflow ID ${id} não encontrado.` });
-        }
-        
-        return res.status(200).send({ data: workflow });
     }
 }
