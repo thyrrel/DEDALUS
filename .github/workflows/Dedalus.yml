@@ -53,7 +53,6 @@ jobs:
   # -----------------------------------------------------
   deploy-frontend:
     runs-on: ubuntu-latest
-    # DEPENDÊNCIA REMOVIDA (EXECUÇÃO PARALELA)
     name: Build & Deploy Frontend
 
     steps:
@@ -65,15 +64,11 @@ jobs:
       with:
         node-version: '20'
 
-    # PASSO CRUCIAL PARA CORRIGIR O PATH (DEDALUS/DEDALUS)
-    - name: 📝 Configurar Variavel de Ambiente PUBLIC_URL
-      run: echo "PUBLIC_URL=." >> $GITHUB_ENV
-      
-    - name: 🎨 Instalar e Buildar Frontend (CORRIGIDO)
+    - name: 🎨 Instalar e Buildar Frontend
       run: |
         cd frontend/designer-ui
+        # O build agora executa: PUBLIC_URL=./ react-scripts build
         npm install --legacy-peer-deps 
-        # O build agora usará PUBLIC_URL=. para encontrar o index.html e os assets
         npm run build
         
     - name: 🚀 Deploy Frontend (FTP/SFTP)
