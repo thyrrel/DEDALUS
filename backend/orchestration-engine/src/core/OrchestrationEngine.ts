@@ -1,20 +1,18 @@
-// src/core/OrchestrationEngine.ts
+// src/core/OrchestrationEngine.ts (FINAL)
 
 import { IWorkflow, IWorkflowNode } from '../models/IWorkflow';
+import { ModuleExecutor, IExecutionState } from './ModuleExecutor'; // IMPORTAÇÃO CHAVE
 
-/**
- * Define a estrutura de dados de uma instância de execução de um Workflow.
- * Usado para rastrear o progresso e o estado dos dados.
- */
+// Estrutura de IExecutionState (mantida)
 export interface IExecutionState {
-    instanceId: string;                 // ID único desta execução
+    instanceId: string;
     workflowId: string;
-    currentNodeId: string;              // O nó atual em execução
+    currentNodeId: string;
     status: 'PENDING' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED';
-    dataContext: Record<string, any>;   // Dados transitórios que fluem entre os nós
+    dataContext: Record<string, any>;
     startTime: Date;
     endTime?: Date;
-    history: string[];                  // Registro dos nós já executados
+    history: string[];
 }
 
 /**
@@ -22,21 +20,24 @@ export interface IExecutionState {
  */
 export class OrchestrationEngine {
     
+    private moduleExecutor: ModuleExecutor; // NOVA PROPRIEDADE
+
     constructor() {
+        this.moduleExecutor = new ModuleExecutor(); // Inicializa o Executor no construtor
         console.log('[CORE]: DEDALUS Orchestration Engine inicializado.');
     }
 
     /**
-     * Inicia a execução de um Workflow a partir de sua definição estrutural.
-     * @param workflow A definição IWorkflow carregada do banco de dados.
+     * Inicia a execução de um Workflow.
+     * @param workflow A definição IWorkflow carregada.
      * @param initialData Os dados de entrada iniciais (payload).
      */
-    public startExecution(workflow: IWorkflow, initialData: Record<string, any>): IExecutionState {
+    public async startExecution(workflow: IWorkflow, initialData: Record<string, any>): Promise<IExecutionState> {
         if (!workflow.startNodeId) {
             throw new Error('Não é possível iniciar: Nó inicial (startNodeId) não definido.');
         }
 
-        const initialState: IExecutionState = {
+        let state: IExecutionState = { // Usamos 'let' pois o estado será atualizado
             instanceId: `exec-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             workflowId: workflow.id,
             currentNodeId: workflow.startNodeId,
@@ -46,19 +47,26 @@ export class OrchestrationEngine {
             history: [workflow.startNodeId]
         };
 
-        // Inicia o loop principal de processamento em background (síncrono/assíncrono)
-        // No MVP, faremos uma simulação síncrona:
-        // this.processNode(workflow, initialState);
-        
         console.log(`[EXEC]: Iniciada execução para Workflow ID: ${workflow.id}`);
-        return initialState;
+        
+        // Loop de processamento de nó
+        // Em um sistema real, isso seria um processo assíncrono e resiliente (fila/mensageria).
+        while (state.status === 'RUNNING' && state.currentNodeId) {
+            state = await this.processNode(workflow, state);
+            // Prevenção de loop infinito no Mock
+            if (state.history.length > 50) { 
+                state.status = 'FAILED';
+                console.error("[EXEC ERROR]: Limite de 50 nós excedido (loop detectado).");
+            }
+        }
+        
+        return state;
     }
 
     /**
-     * Função principal para processar um único nó e determinar o próximo.
-     * (Esta função evoluirá para ser assíncrona e resiliente).
+     * Processa um único nó, invoca o executor e determina o próximo nó.
      */
-    private processNode(workflow: IWorkflow, state: IExecutionState): IExecutionState {
+    private async processNode(workflow: IWorkflow, state: IExecutionState): Promise<IExecutionState> {
         const currentNode = workflow.nodes.find(n => n.id === state.currentNodeId);
 
         if (!currentNode) {
@@ -69,30 +77,26 @@ export class OrchestrationEngine {
 
         console.log(`[EXEC]: Executando nó ${currentNode.name} (${currentNode.type}).`);
 
-        // Simulação da execução do módulo (aqui ocorreria a chamada real ao código do módulo)
-        state.dataContext = this.executeModule(currentNode, state.dataContext);
+        try {
+            // Executa o módulo real via ModuleExecutor, atualizando o dataContext
+            state.dataContext = await this.moduleExecutor.execute(currentNode, state.dataContext);
 
-        // Determina o próximo estado/nó (lógica de transição FSM)
+        } catch (error) {
+            state.status = 'FAILED';
+            console.error(`[EXEC ERROR]: Falha na execução do módulo ${currentNode.type}:`, error);
+            return state;
+        }
+
+        // Determina o próximo estado/nó
         if (currentNode.next) {
             state.currentNodeId = Array.isArray(currentNode.next) ? currentNode.next[0] : currentNode.next;
             state.history.push(state.currentNodeId);
         } else {
             state.status = 'COMPLETED';
             state.endTime = new Date();
+            state.currentNodeId = ''; // Finaliza o loop
         }
 
         return state;
-    }
-    
-    /**
-     * MOCK: Simula a execução do código de um módulo/conector.
-     */
-    private executeModule(node: IWorkflowNode, data: Record<string, any>): Record<string, any> {
-        console.log(`  -> Executando lógica para tipo: ${node.type}`);
-        // Exemplo: Se for um nó de dados, injeta dados no contexto
-        if (node.type === 'data-source' && node.config.outputKey) {
-            data[node.config.outputKey] = { message: 'Dados mockados de um conector externo' };
-        }
-        return data;
     }
 }
