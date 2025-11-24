@@ -1,4 +1,4 @@
-# .github/workflows/main-deploy.yml (EXECUÇÃO PARALELA)
+# .github/workflows/main-deploy.yml (FINAL & PARALELO)
 
 name: ⚙️ DEDALUS - Deploy Centralizado (PARALELO)
 
@@ -11,7 +11,6 @@ on:
 jobs:
   # -----------------------------------------------------
   # 1. Job do Backend: Motor de Orquestração
-  # Este Job será iniciado Imediatamente.
   # -----------------------------------------------------
   deploy-backend:
     runs-on: ubuntu-latest
@@ -27,9 +26,10 @@ jobs:
       with:
         node-version: '20'
 
-    - name: ⚙️ Instalar, Buildar e Preparar Prisma
+    - name: ⚙️ Instalar, Buildar e Preparar Prisma (CORRIGIDO)
       run: |
         cd backend/orchestration-engine
+        # O 'npm install' agora instalará o @prisma/client explicitamente
         npm install
         npx prisma generate
         npm run build 
@@ -51,11 +51,10 @@ jobs:
       
   # -----------------------------------------------------
   # 2. Job do Frontend: Designer Low-Code
-  # Este Job será iniciado Imediatamente (paralelo ao Backend).
   # -----------------------------------------------------
   deploy-frontend:
     runs-on: ubuntu-latest
-    # REMOVIDA A LINHA 'needs: [deploy-backend]'
+    # DEPENDÊNCIA REMOVIDA para permitir execução PARALELA
     name: Build & Deploy Frontend
 
     steps:
@@ -67,10 +66,11 @@ jobs:
       with:
         node-version: '20'
 
-    - name: 🎨 Instalar e Buildar Frontend
+    - name: 🎨 Instalar e Buildar Frontend (CORRIGIDO)
       run: |
         cd frontend/designer-ui
-        npm install
+        # CORREÇÃO: Adiciona a flag para resolver o conflito de peer dependency do TypeScript
+        npm install --legacy-peer-deps 
         npm run build
         
     - name: 🚀 Deploy Frontend (FTP/SFTP)
