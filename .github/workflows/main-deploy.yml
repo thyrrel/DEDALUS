@@ -1,27 +1,24 @@
-# .github/workflows/main-deploy.yml (FINAL)
+# .github/workflows/main-deploy.yml (EXECUÇÃO FORÇADA)
 
-name: ⚙️ DEDALUS - Deploy Centralizado (BACKEND & FRONTEND)
+name: ⚙️ DEDALUS - Deploy Centralizado (EXECUÇÃO FORÇADA)
 
 on:
   push:
     branches:
       - main
+  # Mantemos o workflow_dispatch para permitir execuções manuais
+  workflow_dispatch: 
 
 jobs:
   # -----------------------------------------------------
-  # 1. Job do Backend: Build e Deploy do Motor de Orquestração
+  # 1. Job do Backend: Motor de Orquestração (SEMPRE RODA)
   # -----------------------------------------------------
   deploy-backend:
     runs-on: ubuntu-latest
     name: Build & Deploy Backend
-    environment: Production # Define o ambiente (opcional, para controle e logs)
+    environment: Production
+    # A linha 'if:' foi removida, garantindo que este Job SEMPRE execute.
     
-    # Executa SOMENTE se houver mudanças no backend ou se o commit for forçado
-    if: |
-      contains(github.event.commits.*.modified, 'backend/orchestration-engine/') ||
-      contains(github.event.commits.*.added, 'backend/orchestration-engine/') ||
-      github.event_name == 'workflow_dispatch'
-
     steps:
     - name: ⬇️ Checkout do Código
       uses: actions/checkout@v4
@@ -35,12 +32,10 @@ jobs:
       run: |
         cd backend/orchestration-engine
         npm install
-        # Gera o cliente Prisma com base no schema.prisma
         npx prisma generate
         npm run build 
 
     - name: 📦 Preparar Arquivos de Deployment
-      # Criamos um ZIP que inclui a dist/, node_modules/ e package.json
       run: |
         cd backend/orchestration-engine
         zip -r backend-deploy.zip dist node_modules package.json
@@ -48,29 +43,21 @@ jobs:
     - name: 🚀 Deploy Backend (FTP/SFTP)
       uses: SamKirkland/FTP-Deploy-Action@v4.3.0
       with:
-        # Credenciais e Host do ezyro/FTP
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        # Diretório onde o servidor Node.js irá rodar (Ex: dedalus-backend/)
         server-dir: /dedalus-backend/ 
-        # Upload do arquivo ZIP
         file-pattern: 'backend/orchestration-engine/backend-deploy.zip'
-        # COMANDO CRUCIAL: Descompacta o ZIP no servidor após o upload
         args: --skip-passive --delete-local --unzip 'backend/orchestration-engine/backend-deploy.zip' --dest /dedalus-backend/
-
+      
   # -----------------------------------------------------
-  # 2. Job do Frontend: Build e Deploy do Designer Low-Code
+  # 2. Job do Frontend: Designer Low-Code (SEMPRE RODA)
   # -----------------------------------------------------
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [deploy-backend] # Executa após o backend (garante que as APIs estejam prontas)
+    needs: [deploy-backend]
     name: Build & Deploy Frontend
-    
-    # Executa SOMENTE se houver mudanças no frontend
-    if: |
-      contains(github.event.commits.*.modified, 'frontend/designer-ui/') ||
-      contains(github.event.commits.*.added, 'frontend/designer-ui/')
+    # A linha 'if:' foi removida, garantindo que este Job SEMPRE execute.
 
     steps:
     - name: ⬇️ Checkout do Código
@@ -93,9 +80,6 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        # Diretório raiz web (onde o index.html deve ficar)
-        server-dir: /htdocs/ 
-        # Faz upload de todo o conteúdo da pasta build/
+        server-dir: /htdocs/
         local-dir: ./frontend/designer-ui/build/
-        # Limpa o diretório remoto antes do upload
         args: --delete-local --delete-remote
