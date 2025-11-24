@@ -1,22 +1,22 @@
-// /backend/orchestration-engine/prisma/schema.prisma (FINAL PARA MYSQL)
+// /backend/orchestration-engine/prisma/schema.prisma (FINAL E CORRIGIDO PARA PRISMA 7+)
 
 // Define o conector e o provedor do banco de dados
 generator client {
   provider = "prisma-client-js"
 }
 
+// ATENÇÃO: A PROPRIEDADE 'url' FOI REMOVIDA AQUI CONFORME ERRO P1012.
+// A configuração da URL será migrada para o 'PrismaClient.ts' (passada via código).
 datasource db {
-  provider = "mysql" // MUDANÇA: Altera o provedor para MySQL
-  // A URL de conexão será lida de uma variável de ambiente (DATABASE_URL)
-  // O MySQL usa 'mysql://...'
-  url      = env("DATABASE_URL")
+  provider = "mysql"
+  // Removida: url = env("DATABASE_URL")
 }
 
-// --- MODELOS DE DADOS DEDALUS ---
+// --- MODELOS DE DADOS DEDALUS (MANTIDOS) ---
 
 // 1. Modelo de Workflow (Definição do fluxo Low-Code)
 model Workflow {
-  id          String   @id @default(uuid()) @db.VarChar(36) // Especifica tamanho e UUID para MySQL
+  id          String   @id @default(uuid()) @db.VarChar(36)
   name        String   @db.VarChar(255)
   version     Int      @default(1)
   description String?  @db.Text
@@ -24,15 +24,10 @@ model Workflow {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  // Armazena a estrutura do fluxo Low-Code em formato JSON nativo
-  // MySQL suporta o tipo JSON, que é gerenciado pelo Prisma.
   nodesJson   Json     @map("nodes_json") 
 
-  // Relacionamento com as execuções
   executions  WorkflowExecution[]
   
-  // Índices para otimizar buscas
-  // Unique combinado para garantir que não haja dois workflows com o mesmo nome/versão.
   @@unique([name, version])
   @@map("workflows")
 }
@@ -43,12 +38,11 @@ model WorkflowExecution {
   workflowId      String   @db.VarChar(36)
   status          String   @db.VarChar(50)
   currentNodeId   String   @map("current_node_id") @db.VarChar(50)
-  dataContextJson Json     @map("data_context_json") // Contexto de dados (payload)
+  dataContextJson Json     @map("data_context_json")
   startTime       DateTime @default(now())
   endTime         DateTime?
-  historyJson     Json     @map("history_json") // Registro dos nós percorridos
+  historyJson     Json     @map("history_json")
 
-  // Relacionamento de volta para o Workflow
   workflow Workflow @relation(fields: [workflowId], references: [id])
   
   @@map("workflow_executions")
