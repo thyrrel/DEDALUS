@@ -27,3 +27,15 @@
     "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   }
 }
+{
+  "name": "@dedalus/designer-ui",
+  "version": "1.0.0",
+  // ... (outras propriedades)
+  "homepage": ".", // Adicionar esta linha para forçar caminhos relativos na raiz
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test"
+  },
+// ... (resto do arquivo)
+}
