@@ -1,15 +1,11 @@
-# .github/workflows/main-deploy.yml
+# .github/workflows/main-deploy.yml (FINAL)
 
 name: ⚙️ DEDALUS - Deploy Centralizado (BACKEND & FRONTEND)
 
-# Gatilho: Roda quando há um push para a branch 'main'
 on:
   push:
     branches:
       - main
-    paths-ignore: # Opcional: Ignora arquivos de documentação, etc.
-      - '**.md'
-      - '.gitignore'
 
 jobs:
   # -----------------------------------------------------
@@ -18,11 +14,14 @@ jobs:
   deploy-backend:
     runs-on: ubuntu-latest
     name: Build & Deploy Backend
-    # Executa este job SOMENTE se houver mudanças no diretório do backend
+    environment: Production # Define o ambiente (opcional, para controle e logs)
+    
+    # Executa SOMENTE se houver mudanças no backend ou se o commit for forçado
     if: |
       contains(github.event.commits.*.modified, 'backend/orchestration-engine/') ||
-      contains(github.event.commits.*.added, 'backend/orchestration-engine/')
-    
+      contains(github.event.commits.*.added, 'backend/orchestration-engine/') ||
+      github.event_name == 'workflow_dispatch'
+
     steps:
     - name: ⬇️ Checkout do Código
       uses: actions/checkout@v4
@@ -32,41 +31,47 @@ jobs:
       with:
         node-version: '20'
 
-    - name: ⚙️ Instalar e Buildar Backend
+    - name: ⚙️ Instalar, Buildar e Preparar Prisma
       run: |
         cd backend/orchestration-engine
         npm install
-        npm run build
-        
-    - name: 📦 Compactar Arquivos para Deployment
-      uses: actions/upload-artifact@v4
+        # Gera o cliente Prisma com base no schema.prisma
+        npx prisma generate
+        npm run build 
+
+    - name: 📦 Preparar Arquivos de Deployment
+      # Criamos um ZIP que inclui a dist/, node_modules/ e package.json
+      run: |
+        cd backend/orchestration-engine
+        zip -r backend-deploy.zip dist node_modules package.json
+
+    - name: 🚀 Deploy Backend (FTP/SFTP)
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.0
       with:
-        name: backend-dist
-        path: backend/orchestration-engine/dist
-        
-    # --- DEPLOYMENT ---
-    # Nota: A Ação de FTP/SFTP será adicionada aqui, usando GitHub Secrets.
-    # Exemplo (Requer a configuração prévia dos Secrets):
-    # - name: 🚀 Deploy Backend (FTP/SFTP)
-    #   uses: SamKirkland/FTP-Deploy-Action@v4.3.0
-    #   with:
-    #     server: ${{ secrets.FTP_SERVER }}
-    #     username: ${{ secrets.FTP_USERNAME }}
-    #     password: ${{ secrets.FTP_PASSWORD }}
-    #     local-dir: ./backend/orchestration-engine/dist/
-    #     server-dir: /home/user/dedalus-backend/
-      
+        # Credenciais e Host do ezyro/FTP
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        # Diretório onde o servidor Node.js irá rodar (Ex: dedalus-backend/)
+        server-dir: /dedalus-backend/ 
+        # Upload do arquivo ZIP
+        file-pattern: 'backend/orchestration-engine/backend-deploy.zip'
+        # COMANDO CRUCIAL: Descompacta o ZIP no servidor após o upload
+        args: --skip-passive --delete-local --unzip 'backend/orchestration-engine/backend-deploy.zip' --dest /dedalus-backend/
+
   # -----------------------------------------------------
   # 2. Job do Frontend: Build e Deploy do Designer Low-Code
   # -----------------------------------------------------
   deploy-frontend:
     runs-on: ubuntu-latest
+    needs: [deploy-backend] # Executa após o backend (garante que as APIs estejam prontas)
     name: Build & Deploy Frontend
-    # Executa este job SOMENTE se houver mudanças no diretório do frontend
+    
+    # Executa SOMENTE se houver mudanças no frontend
     if: |
       contains(github.event.commits.*.modified, 'frontend/designer-ui/') ||
       contains(github.event.commits.*.added, 'frontend/designer-ui/')
-      
+
     steps:
     - name: ⬇️ Checkout do Código
       uses: actions/checkout@v4
@@ -82,12 +87,15 @@ jobs:
         npm install
         npm run build
         
-    # --- DEPLOYMENT ---
-    # - name: 🚀 Deploy Frontend (FTP/SFTP)
-    #   uses: SamKirkland/FTP-Deploy-Action@v4.3.0
-    #   with:
-    #     server: ${{ secrets.FTP_SERVER }}
-    #     username: ${{ secrets.FTP_USERNAME }}
-    #     password: ${{ secrets.FTP_PASSWORD }}
-    #     local-dir: ./frontend/designer-ui/build/
-    #     server-dir: /public_html/
+    - name: 🚀 Deploy Frontend (FTP/SFTP)
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.0
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        # Diretório raiz web (onde o index.html deve ficar)
+        server-dir: /htdocs/ 
+        # Faz upload de todo o conteúdo da pasta build/
+        local-dir: ./frontend/designer-ui/build/
+        # Limpa o diretório remoto antes do upload
+        args: --delete-local --delete-remote
