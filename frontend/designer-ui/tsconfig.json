@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "jsx": "react-jsx",                           /* Suporte a JSX */
+    "lib": ["dom", "dom.iterable", "esnext"],     /* Bibliotecas de referência (Browser) */
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true                                /* Não emite código JS (o Webpack cuida disso) */
+  },
+  "include": ["src"]
+}
