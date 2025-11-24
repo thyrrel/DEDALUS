@@ -20,8 +20,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    // MODIFICAÇÃO CHAVE: Define PUBLIC_URL=./ antes de rodar o build
-    "build": "PUBLIC_URL=./ react-scripts build", 
+    "build": "PUBLIC_URL=./ react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
