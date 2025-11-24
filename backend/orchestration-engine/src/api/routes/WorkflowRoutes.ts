@@ -1,18 +1,27 @@
-// src/api/routes/WorkflowRoutes.ts (Atualizado)
+// src/api/routes/WorkflowRoutes.ts (FINAL)
 
 import { Router } from 'express';
 import { WorkflowController } from '../controllers/WorkflowController';
+import { ModuleCatalogController } from '../controllers/ModuleCatalogController'; // NOVA IMPORTAÇÃO
 
 const router = Router();
 const workflowController = new WorkflowController();
+const moduleCatalogController = new ModuleCatalogController(); // NOVA INSTANCIAÇÃO
 
-// POST /api/v1/workflows -> Rota para Salvar/Criar um novo Workflow (fluxo Low-Code)
+// --- ROTAS DE WORKFLOW (Composição/Execução) ---
+
+// POST /api/v1/workflows -> Salvar/Criar um novo Workflow (fluxo Low-Code)
 router.post('/workflows', workflowController.createWorkflow);
 
-// GET /api/v1/workflows/:id -> Rota para buscar um Workflow específico
+// GET /api/v1/workflows/:id -> Buscar um Workflow específico
 router.get('/workflows/:id', workflowController.getWorkflow);
 
-// NOVO: POST /api/v1/workflows/:id/execute -> Rota para Iniciar a Execução de um Workflow
-router.post('/workflows/:id/execute', workflowController.executeWorkflow); // NOVA ROTA
+// POST /api/v1/workflows/:id/execute -> Iniciar a Execução de um Workflow
+router.post('/workflows/:id/execute', workflowController.executeWorkflow);
+
+// --- ROTAS DO CATÁLOGO DE MÓDULOS ---
+
+// GET /api/v1/modules -> Buscar a lista de módulos disponíveis no Catálogo (para o Designer)
+router.get('/modules', moduleCatalogController.getAvailableModules); // NOVA ROTA
 
 export const WorkflowRoutes = router;
