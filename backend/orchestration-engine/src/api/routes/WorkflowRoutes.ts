@@ -1,4 +1,5 @@
-// src/api/routes/WorkflowRoutes.ts
+// src/api/routes/WorkflowRoutes.ts (Atualizado)
+
 import { Router } from 'express';
 import { WorkflowController } from '../controllers/WorkflowController';
 
@@ -11,5 +12,7 @@ router.post('/workflows', workflowController.createWorkflow);
 // GET /api/v1/workflows/:id -> Rota para buscar um Workflow específico
 router.get('/workflows/:id', workflowController.getWorkflow);
 
-// Exporte o roteador para ser usado no index.ts
+// NOVO: POST /api/v1/workflows/:id/execute -> Rota para Iniciar a Execução de um Workflow
+router.post('/workflows/:id/execute', workflowController.executeWorkflow); // NOVA ROTA
+
 export const WorkflowRoutes = router;
