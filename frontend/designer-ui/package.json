@@ -2,13 +2,15 @@
   "name": "designer-ui",
   "version": "1.0.0",
   "private": true,
-  "description": "Frontend Designer UI - DEDALUS - Build Corrigido byThyrrel",
+  "description": "Frontend Designer UI - DEDALUS - Build Compatível com Node 20 - byThyrrel",
+
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
   },
+
   "dependencies": {
     "@testing-library/jest-dom": "5.17.0",
     "@testing-library/react": "13.4.0",
@@ -21,29 +23,17 @@
     "web-vitals": "2.1.4",
 
     "ajv": "6.12.6",
-    "ajv-keywords": "3.5.2"
+    "ajv-keywords": "3.5.2",
+
+    "typescript": "5.3.3",
+    "@types/node": "20.12.7"
   },
+
   "overrides": {
     "ajv": "6.12.6",
     "ajv-keywords": "3.5.2"
   },
+
   "devDependencies": {
     "eslint": "8.57.0",
-    "eslint-config-react-app": "7.0.1",
-    "eslint-plugin-react": "7.34.1",
-    "eslint-plugin-react-hooks": "4.6.0",
-    "eslint-plugin-jest": "27.9.0"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
-}
+    "
