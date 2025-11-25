@@ -1,4 +1,4 @@
-# .github/workflows/main-deploy.yml (FINAL & PARALELO)
+# .github/workflows/main-deploy.yml (FINAL & PARALELO com Fix de Cache)
 
 name: ⚙️ DEDALUS - Deploy Centralizado (PARALELO)
 
@@ -64,11 +64,16 @@ jobs:
       with:
         node-version: '20'
 
-    - name: 🎨 Instalar e Buildar Frontend
+    - name: 🎨 Instalar e Buildar Frontend (CORREÇÃO DE DEPENDÊNCIAS)
       run: |
         cd frontend/designer-ui
-        # O build agora executa: PUBLIC_URL=./ react-scripts build
+        
+        # PASSO CRUCIAL: Limpa o cache para remover referências quebradas (Fix MODULE_NOT_FOUND)
+        npm cache clean --force
+        
+        # Reinstala com a flag de peer-deps, garantindo que o cache esteja limpo
         npm install --legacy-peer-deps 
+        
         npm run build
         
     - name: 🚀 Deploy Frontend (FTP/SFTP)
